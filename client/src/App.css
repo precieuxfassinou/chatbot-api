@@ -182,7 +182,24 @@ body {
   padding: 18px 20px;
   font-weight: bold;
   font-size: 18px;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chat-header button:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .chat-messages {
