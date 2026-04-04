@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import apiFetch from "../api";
+import API_URL from "../config";
 
 function Chat() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ function Chat() {
       return;
     }
     const fetchHistory = async () => {
-      const response = await apiFetch("http://localhost:3000/chat/history");
+      const response = await apiFetch(`${API_URL}/chat/history`);
       const data = await response.json();
       setMessages(data.history || []);
     };
@@ -26,7 +27,7 @@ function Chat() {
 
   async function sendMessage() {
     setLoading(true);
-    const response = await apiFetch("http://localhost:3000/chat", {
+    const response = await apiFetch(`${API_URL}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

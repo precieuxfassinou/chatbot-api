@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import apiFetch from "../api";
+import API_URL from "../config";
 
 export default function Dashboard() {
   const [users, setUsers] = useState([]);
@@ -13,9 +14,9 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       const [usersData, statsData, topIntentionsData] = await Promise.all([
-        apiFetch("http://localhost:3000/admin/users").then((res) => res.json()),
-        apiFetch("http://localhost:3000/admin/stats").then((res) => res.json()),
-        apiFetch("http://localhost:3000/admin/top-intentions").then((res) =>
+        apiFetch(`${API_URL}/admin/users`).then((res) => res.json()),
+        apiFetch(`${API_URL}/admin/stats`).then((res) => res.json()),
+        apiFetch(`${API_URL}/admin/top-intentions`).then((res) =>
           res.json(),
         ),
       ]);
@@ -30,7 +31,7 @@ export default function Dashboard() {
 
   const deleteUser = async (userId) => {
     if (window.confirm("Supprimer cet utilisateur ?")) {
-      await apiFetch(`http://localhost:3000/admin/users/${userId}`, {
+      await apiFetch(`${API_URL}/admin/users/${userId}`, {
         method: "DELETE",
       });
       setUsers(users.filter((u) => u.id !== userId));

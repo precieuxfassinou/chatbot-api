@@ -1,3 +1,4 @@
+import API_URL from './config';
 async function apiFetch(url, options = {}) {
     const token = localStorage.getItem('token');
 
@@ -11,7 +12,7 @@ async function apiFetch(url, options = {}) {
     const response = await fetch(url, options);
     
     if(response.status === 401) {
-        const refreshResponse = await fetch('http://localhost:3000/auth/refresh', {
+        const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
             credentials: 'include', // Include cookies for refresh token
         });
