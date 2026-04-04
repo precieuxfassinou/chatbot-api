@@ -10,7 +10,24 @@ function Chat() {
   const [writting, setWritting] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
   const token = localStorage.getItem("token");
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const response = await apiFetch(`${API_URL}/auth/profile`);
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -47,7 +64,15 @@ function Chat() {
 
   return (
     <div className="chat-container">
-      <h1 className="chat-header">Chat Support</h1>
+      <div className="chat-header">
+        <span>Chat Support</span>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {profile?.role === "admin" && (
+            <button onClick={() => navigate("/dashboard")}>Dashboard</button>
+          )}
+          <button onClick={logout}>Déconnexion</button>
+        </div>
+      </div>
       <div className="chat-messages">
         {messages.map((message, index) => (
           <>

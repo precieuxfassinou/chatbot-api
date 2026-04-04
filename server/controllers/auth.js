@@ -84,6 +84,14 @@ async function login(req, res) {
     }
 }
 
+async function getProfile(req, res) {
+    const result = await pool.query(
+        'SELECT id, firstname, lastname, email, role FROM users WHERE id = $1',
+        [req.user.id]
+    );
+    res.json(result.rows[0]);
+}
+
 async function refreshToken(req, res) {
     const refreshToken = req.cookies.refreshToken;
 
@@ -105,4 +113,4 @@ async function logout(req, res) {
     res.status(200).json({ message: 'Déconnecté avec succès' });
 }
 
-module.exports = { register, login, refreshToken, logout };
+module.exports = { register, login, refreshToken, logout, getProfile };
