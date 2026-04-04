@@ -16,9 +16,7 @@ export default function Dashboard() {
       const [usersData, statsData, topIntentionsData] = await Promise.all([
         apiFetch(`${API_URL}/admin/users`).then((res) => res.json()),
         apiFetch(`${API_URL}/admin/stats`).then((res) => res.json()),
-        apiFetch(`${API_URL}/admin/top-intentions`).then((res) =>
-          res.json(),
-        ),
+        apiFetch(`${API_URL}/admin/top-intentions`).then((res) => res.json()),
       ]);
       setUsers(usersData || []);
       setTopIntentions(topIntentionsData || []);
@@ -55,32 +53,37 @@ export default function Dashboard() {
 
       {/* Utilisateurs */}
       <h2>Utilisateurs</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Rôle</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>
-                {user.firstname} {user.lastname}
-              </td>
-              <td>{user.email}</td>
-              <td>{user.role}</td>
-              <td>
-                {user.role !== "admin" && (
-                  <button onClick={() => deleteUser(user.id)}>Supprimer</button>
-                )}
-              </td>
+      <h2>Utilisateurs</h2>
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>
+                  {user.firstname} {user.lastname}
+                </td>
+                <td>{user.email}</td>
+                <td>{user.role}</td>
+                <td>
+                  {user.role !== "admin" && (
+                    <button onClick={() => deleteUser(user.id)}>
+                      Supprimer
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Top intentions */}
       <h2>Top Intentions</h2>
