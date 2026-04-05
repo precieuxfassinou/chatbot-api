@@ -72,4 +72,4 @@ async function handleChat(req, res) {
     res.json({ response });
 }
 
-module.exports = { handleChat, getHistory };
+module.exports = { handleChat, getHistory, analyzeMessage, getResponse };

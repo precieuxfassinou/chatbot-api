@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import React from "react";
 
 import apiFetch from "../api";
 import API_URL from "../config";
+import { io } from "socket.io-client";
+
+const socket = io(API_URL);
 
 function Chat() {
   const navigate = useNavigate();
@@ -42,24 +46,33 @@ function Chat() {
     fetchHistory();
   }, []);
 
-  async function sendMessage() {
-    setLoading(true);
-    const response = await apiFetch(`${API_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: writting }),
-    });
-    const data = await response.json();
-    if (writting.trim() !== "") {
-      setMessages([
-        ...messages,
-        { user_message: writting, bot_response: data.response },
+  useEffect(() => {
+    socket.on("response", (data) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          user_message: "",
+          bot_response: data.response,
+        },
       ]);
-      setWritting("");
-    }
-    setLoading(false);
+      setLoading(false);
+    });
+
+    return () => {
+      socket.off("response");
+    };
+  }, []);
+
+  async function sendMessage() {
+    if (writting.trim() === "") return;
+
+    setLoading(true);
+    setMessages((prev) => [
+      ...prev,
+      { user_message: writting, bot_response: "" },
+    ]);
+    socket.emit("message", { message: writting });
+    setWritting("");
   }
 
   return (
@@ -75,12 +88,14 @@ function Chat() {
       </div>
       <div className="chat-messages">
         {messages.map((message, index) => (
-          <>
-            <div key={index} className="message-user">
-              {message.user_message}
-            </div>
-            <div className="message-bot">{message.bot_response}</div>
-          </>
+          <React.Fragment key={index}>
+            {message.user_message && (
+              <div className="message-user">{message.user_message}</div>
+            )}
+            {message.bot_response && (
+              <div className="message-bot">{message.bot_response}</div>
+            )}
+          </React.Fragment>
         ))}
       </div>
 

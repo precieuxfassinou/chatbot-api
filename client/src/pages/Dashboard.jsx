@@ -53,7 +53,6 @@ export default function Dashboard() {
 
       {/* Utilisateurs */}
       <h2>Utilisateurs</h2>
-      <h2>Utilisateurs</h2>
       <div className="table-wrapper">
         <table>
           <thead>
