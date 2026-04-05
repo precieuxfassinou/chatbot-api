@@ -13,7 +13,6 @@ function Chat() {
   const navigate = useNavigate();
   const [writting, setWritting] = useState("");
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
   const token = localStorage.getItem("token");
 
@@ -55,7 +54,6 @@ function Chat() {
           bot_response: data.response,
         },
       ]);
-      setLoading(false);
     });
 
     return () => {
@@ -66,7 +64,6 @@ function Chat() {
   async function sendMessage() {
     if (writting.trim() === "") return;
 
-    setLoading(true);
     setMessages((prev) => [
       ...prev,
       { user_message: writting, bot_response: "" },
@@ -108,7 +105,7 @@ function Chat() {
         ></textarea>
         <button onClick={sendMessage}>
           {" "}
-          {loading ? "Envoi en cours..." : "Envoyer"}
+          "Envoyer"
         </button>
       </div>
     </div>
