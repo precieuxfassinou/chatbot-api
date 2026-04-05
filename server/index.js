@@ -9,6 +9,9 @@ const cookieParser = require('cookie-parser');
 dotenv.config();
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const jwt = require("jsonwebtoken");
+const pool = require('./config/db');
+const { getOrCreateConversation } = require('./controllers/chat');
 
 
 const app = express();
@@ -16,32 +19,48 @@ const PORT = process.env.PORT || 3000;
 
 
 const httpServer = createServer(app);
-const io = new Server(httpServer,{
-    cors: {
-        origin: ['http://localhost:5173', 'https://chatbot-api-wine.vercel.app'],
-        credentials: true
-    }
+const io = new Server(httpServer, {
+  cors: {
+    origin: ['http://localhost:5173', 'https://chatbot-api-wine.vercel.app'],
+    credentials: true
+  }
 });
 
 io.on('connection', (socket) => {
-    console.log('Client connecté : ' + socket.id);
+  console.log('Client connecté : ' + socket.id);
 
-    socket.on('message', async (data) => {
-        const analysis = await analyzeMessage(data.message);
-        const response = await getResponse(data.message, analysis);
+  socket.on('message', async (data) => {
+    try {
+        console.log('1. data reçu:', data);
+        const { message, token } = data;
+        
+        console.log('2. token:', token ? 'présent' : 'absent');
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const userId = decoded.id;
+        console.log('3. userId:', userId);
+        
+        const conversation = await getOrCreateConversation(userId);
+        console.log('4. conversation:', conversation);
+        
+        const analysis = await analyzeMessage(message);
+        console.log('5. analysis:', analysis);
+        
+        const response = await getResponse(message, analysis);
+        console.log('6. response:', response);
+        
         socket.emit('response', { response });
-        socket.emit('done');
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client déconnecté : ' + socket.id);
-    });
+        console.log('7. réponse envoyée');
+    } catch (error) {
+        console.error('Socket error:', error.message);
+        socket.emit('error', { message: 'Erreur serveur' });
+    }
+});
 });
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://chatbot-api-wine.vercel.app'],
-    credentials: true
+  origin: ['http://localhost:5173', 'https://chatbot-api-wine.vercel.app'],
+  credentials: true
 }));
 
 app.use(express.json());

@@ -68,7 +68,7 @@ function Chat() {
       ...prev,
       { user_message: writting, bot_response: "" },
     ]);
-    socket.emit("message", { message: writting });
+    socket.emit("message", { message: writting, token });
     setWritting("");
   }
 
@@ -105,7 +105,7 @@ function Chat() {
         ></textarea>
         <button onClick={sendMessage}>
           {" "}
-          "Envoyer"
+          Envoyer
         </button>
       </div>
     </div>
