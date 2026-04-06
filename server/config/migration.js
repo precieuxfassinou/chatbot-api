@@ -3,9 +3,6 @@ const pool = require('./db');
 async function migrate() {
     try {
         await pool.query(`
-
-            DROP TABLE IF EXISTS conversations CASCADE;
-
             CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             firstname VARCHAR(255) NOT NULL,

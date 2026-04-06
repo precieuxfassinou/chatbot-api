@@ -40,7 +40,17 @@ function Chat() {
     const fetchHistory = async () => {
       const response = await apiFetch(`${API_URL}/chat/history`);
       const data = await response.json();
-      setMessages(data.history || []);
+
+      const normalized = [];
+      (data.history || []).forEach((conversation) => {
+        conversation.messages.forEach((msg) => {
+          normalized.push({
+            sender: msg.sender,
+            content: msg.content,
+          });
+        });
+      });
+      setMessages(normalized);
     };
     fetchHistory();
   }, []);
@@ -64,10 +74,11 @@ function Chat() {
   async function sendMessage() {
     if (writting.trim() === "") return;
 
-    setMessages((prev) => [
-      ...prev,
-      { user_message: writting, bot_response: "" },
-    ]);
+    // sendMessage
+    setMessages((prev) => [...prev, { sender: "user", content: writting }]);
+
+    // socket response
+    setMessages((prev) => [...prev, { sender: "bot", content: data.response }]);
     socket.emit("message", { message: writting, token });
     setWritting("");
   }
@@ -86,11 +97,11 @@ function Chat() {
       <div className="chat-messages">
         {messages.map((message, index) => (
           <React.Fragment key={index}>
-            {message.user_message && (
-              <div className="message-user">{message.user_message}</div>
+            {message.sender === "user" && (
+              <div className="message-user">{message.content}</div>
             )}
-            {message.bot_response && (
-              <div className="message-bot">{message.bot_response}</div>
+            {message.sender === "bot" && (
+              <div className="message-bot">{message.content}</div>
             )}
           </React.Fragment>
         ))}
@@ -103,10 +114,7 @@ function Chat() {
           value={writting}
           onChange={(e) => setWritting(e.target.value)}
         ></textarea>
-        <button onClick={sendMessage}>
-          {" "}
-          Envoyer
-        </button>
+        <button onClick={sendMessage}> Envoyer</button>
       </div>
     </div>
   );
