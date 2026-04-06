@@ -31,30 +31,43 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (data) => {
     try {
-        console.log('1. data reçu:', data);
-        const { message, token } = data;
-        
-        console.log('2. token:', token ? 'présent' : 'absent');
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-        const userId = decoded.id;
-        console.log('3. userId:', userId);
-        
-        const conversation = await getOrCreateConversation(userId);
-        console.log('4. conversation:', conversation);
-        
-        const analysis = await analyzeMessage(message);
-        console.log('5. analysis:', analysis);
-        
-        const response = await getResponse(message, analysis);
-        console.log('6. response:', response);
-        
-        socket.emit('response', { response });
-        console.log('7. réponse envoyée');
+      console.log('1. data reçu:', data);
+      const { message, token } = data;
+
+      console.log('2. token:', token ? 'présent' : 'absent');
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const userId = decoded.id;
+      console.log('3. userId:', userId);
+
+      const conversation = await getOrCreateConversation(userId);
+      console.log('4. conversation:', conversation);
+
+      const analysis = await analyzeMessage(message);
+      console.log('5. analysis:', analysis);
+
+      const response = await getResponse(message, analysis);
+      console.log('6. response:', response);
+
+      await pool.query(
+        "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'user', $2)",
+        [conversation.id, message]
+      );
+      console.log('8. message user inséré');
+
+      await pool.query(
+        "INSERT INTO messages (conversation_id, sender, content, intention) VALUES ($1, 'bot', $2, $3)",
+        [conversation.id, response, analysis.intention]
+      );
+      console.log('9. message bot inséré');
+
+
+      socket.emit('response', { response });
+      console.log('7. réponse envoyée');
     } catch (error) {
-        console.error('Socket error:', error.message);
-        socket.emit('error', { message: 'Erreur serveur' });
+      console.error('Socket error:', error.message);
+      socket.emit('error', { message: 'Erreur serveur' });
     }
-});
+  });
 });
 
 // Middleware
