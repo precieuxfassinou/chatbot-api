@@ -59,10 +59,7 @@ function Chat() {
     socket.on("response", (data) => {
       setMessages((prev) => [
         ...prev,
-        {
-          user_message: "",
-          bot_response: data.response,
-        },
+        { sender: "bot", content: data.response },
       ]);
     });
 
@@ -77,8 +74,6 @@ function Chat() {
     // sendMessage
     setMessages((prev) => [...prev, { sender: "user", content: writting }]);
 
-    // socket response
-    setMessages((prev) => [...prev, { sender: "bot", content: data.response }]);
     socket.emit("message", { message: writting, token });
     setWritting("");
   }
