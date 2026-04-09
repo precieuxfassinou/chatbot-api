@@ -16,16 +16,25 @@ async function analyzeMessage(message) {
     return { intention, felling }
 
 }
-async function getResponse(message, analysis) {
+async function getResponse(message, analysis, history = []) {
+    
+    const contents = history.map(msg => ({
+        role: msg.sender === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+    }));
 
+    contents.push({
+        role: "user",
+        parts: [{ text: message }]
+    });
+
+    const prompt = "Ton nom est Stella. Tu es une assistante support client pour une entreprise e-commerce. Tu réponds toujours en français. Tu aides les clients avec leurs commandes, paiements, remboursements et livraisons. Tu es poli, concis et professionnel. Ne te présente pas à chaque message si tu l'as déjà fait.";
     let response = "";
 
     if (analysis.felling === "negatif") {
-        const prompt = "Ton nom est Stella. Tu es une assistante support client pour une entreprise e-commerce. Tu réponds toujours en français. Tu aides les clients avec leurs commandes, paiements, remboursements et livraisons. Tu es poli, concis et professionnel.:" + message;
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const result = await model.generateContent(prompt);
-        const text = await result.response.text();
-        return (text);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: prompt });
+        const result = await model.generateContent({ contents });
+        return result.response.text();
     }
 
     else {
@@ -40,11 +49,9 @@ async function getResponse(message, analysis) {
         } else if (analysis.intention === "livraison") {
             response = "La livraison prend entre 2 et 5 jours ouvrables selon votre zone.";
         } else {
-            const prompt = "Ton nom est Stella. Tu es une assistante support client pour une entreprise e-commerce. Tu réponds toujours en français. Tu aides les clients avec leurs commandes, paiements, remboursements et livraisons. Tu es poli, concis et professionnel.:" + message;
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const result = await model.generateContent(prompt);
-            const text = await result.response.text();
-            return (text);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: prompt });
+            const result = await model.generateContent({ contents });
+            return result.response.text();
         }
     }
     return response;
