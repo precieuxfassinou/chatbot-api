@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
 async function generateWithFallback(prompt, contents = null) {
-    const models = ['gemini-3.0-flash','gemini-2.5-flash', 'gemini-2.0-flash'];
+    const models = ['gemini-3.1-flash-preview','gemini-2.5-flash', 'gemini-2.0-flash'];
     
     for (const modelName of models) {
         try {
