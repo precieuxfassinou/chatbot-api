@@ -8,15 +8,14 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
 async function generateWithFallback(prompt, contents = null) {
-    const models = ['gemini-3.1-flash-preview','gemini-2.5-flash', 'gemini-2.0-flash'];
-    
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
     for (const modelName of models) {
         try {
-            const model = genAI.getGenerativeModel({ 
+            const model = genAI.getGenerativeModel({
                 model: modelName,
                 systemInstruction: prompt
             });
-            const result = contents 
+            const result = contents
                 ? await model.generateContent({ contents })
                 : await model.generateContent(prompt);
             return result.response.text();
@@ -40,7 +39,7 @@ async function analyzeMessage(message) {
 
 }
 async function getResponse(message, analysis, history = []) {
-    
+
     const contents = history.map(msg => ({
         role: msg.sender === "user" ? "user" : "model",
         parts: [{ text: msg.content }]
@@ -82,13 +81,13 @@ async function getResponse(message, analysis, history = []) {
 
 async function getHistory(req, res) {
     const userId = req.user.id;
-    
+
     // 1. récupérer les conversations
     const conversations = await pool.query(
         "SELECT * FROM conversations WHERE user_id = $1 ORDER BY created_at ASC",
         [userId]
     );
-    
+
     // 2. pour chaque conversation, récupérer ses messages
     const result = await Promise.all(
         conversations.rows.map(async (conv) => {
@@ -102,7 +101,7 @@ async function getHistory(req, res) {
             };
         })
     );
-    
+
     res.json({ history: result });
 }
 
@@ -144,7 +143,7 @@ async function getOrCreateConversation(userId) {
         [conversation.id]
     );
     return conversation;
-    
+
 }
 
 async function handleChat(req, res) {
