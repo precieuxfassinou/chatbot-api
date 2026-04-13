@@ -85,7 +85,7 @@ async function getHistory(req, res) {
 
 async function getOrCreateConversation(userId) {
 
-    const TIMEOUT = process.env.NODE_ENV === 'production' ? 48 * 60 * 60 * 1000 : 3 * 60 * 1000; // 48 heures en prod, 3 minutes en dev
+    const TIMEOUT = process.env.NODE_ENV === 'production' ? 3 * 60 * 1000 : 3 * 60 * 1000; // 48 heures en prod, 3 minutes en dev
 
     let result = await pool.query(
         "SELECT * FROM conversations WHERE user_id = $1 AND status = 'active'",
