@@ -84,17 +84,44 @@ async function getHistory(req, res) {
 }
 
 async function getOrCreateConversation(userId) {
-    let conversation = await pool.query(
+
+    const TIMEOUT = process.env.NODE_ENV === 'production' ? 48 * 60 * 60 * 1000 : 3 * 60 * 1000; // 48 heures en prod, 3 minutes en dev
+
+    let result = await pool.query(
         "SELECT * FROM conversations WHERE user_id = $1 AND status = 'active'",
         [userId]
     );
-    if (conversation.rows.length === 0) {
-        conversation = await pool.query(
-            "INSERT INTO conversations (user_id, status) VALUES ($1, 'active') RETURNING *",
+
+    if (result.rows.length === 0) {
+        const newConversation = await pool.query(
+            "INSERT INTO conversations (user_id, status, last_activity) VALUES ($1, 'active', NOW()) RETURNING *",
             [userId]
         );
+        return newConversation.rows[0];
     }
-    return conversation.rows[0];
+
+    const conversation = result.rows[0];
+    const lastActivity = new Date(conversation.last_activity);
+    const now = new Date();
+
+    if (now - lastActivity > TIMEOUT) {
+        await pool.query(
+            "UPDATE conversations SET status = 'inactive' WHERE id = $1",
+            [conversation.id]
+        );
+        const newConversation = await pool.query(
+            "INSERT INTO conversations (user_id, status, last_activity) VALUES ($1, 'active', NOW()) RETURNING *",
+            [userId]
+        );
+        return newConversation.rows[0];
+    }
+
+    await pool.query(
+        "UPDATE conversations SET last_activity = NOW() WHERE id = $1",
+        [conversation.id]
+    );
+    return conversation;
+    
 }
 
 async function handleChat(req, res) {
