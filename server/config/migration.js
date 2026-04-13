@@ -29,6 +29,7 @@ async function migrate() {
             ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user';
             ALTER TABLE conversations ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+            ALTER TABLE conversations ADD COLUMN last_activity TIMESTAMP DEFAULT NOW();
         `);
         console.log('Migration completed successfully');
     } catch (error) {
