@@ -7,10 +7,33 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
+async function generateWithFallback(prompt, contents = null) {
+    const models = ['gemini-3.0-flash','gemini-2.5-flash', 'gemini-2.0-flash'];
+    
+    for (const modelName of models) {
+        try {
+            const model = genAI.getGenerativeModel({ 
+                model: modelName,
+                systemInstruction: prompt
+            });
+            const result = contents 
+                ? await model.generateContent({ contents })
+                : await model.generateContent(prompt);
+            return result.response.text();
+        } catch (error) {
+            if (error.message.includes('503') && modelName !== models[models.length - 1]) {
+                console.log(`${modelName} indisponible, tentative avec le modèle suivant...`);
+                continue;
+            }
+            throw error;
+        }
+    }
+}
+
 async function analyzeMessage(message) {
 
     const prompt = `Analyse ce message et retourne UNIQUEMENT un JSON sans markdown avec ce format exact : {"intention": "...", "felling": "..."} Les intentions possibles : salutation, suivi_commande, paiement, remboursement, livraison, autre Les sentiments possibles : positif, neutre, negatif Message : ${message}`; const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = await model.generateContent(prompt);
+    const result = generateWithFallback(prompt);
     const text = await result.response.text();
     const { intention, felling } = JSON.parse(text);
     return { intention, felling }
@@ -32,7 +55,7 @@ async function getResponse(message, analysis, history = []) {
     let response = "";
 
     if (analysis.felling === "negatif") {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: prompt });
+        const model = generateWithFallback(prompt, contents);
         const result = await model.generateContent({ contents });
         return result.response.text();
     }
