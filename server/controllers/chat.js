@@ -31,9 +31,8 @@ async function generateWithFallback(prompt, contents = null) {
 
 async function analyzeMessage(message) {
 
-    const prompt = `Analyse ce message et retourne UNIQUEMENT un JSON sans markdown avec ce format exact : {"intention": "...", "felling": "..."} Les intentions possibles : salutation, suivi_commande, paiement, remboursement, livraison, autre Les sentiments possibles : positif, neutre, negatif Message : ${message}`; const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result = generateWithFallback(prompt);
-    const text = await result.response.text();
+    const prompt = `Analyse ce message et retourne UNIQUEMENT un JSON sans markdown avec ce format exact : {"intention": "...", "felling": "..."} Les intentions possibles : salutation, suivi_commande, paiement, remboursement, livraison, autre Les sentiments possibles : positif, neutre, negatif Message : ${message}`;
+    const text = await generateWithFallback(prompt);
     const { intention, felling } = JSON.parse(text);
     return { intention, felling }
 
@@ -54,9 +53,7 @@ async function getResponse(message, analysis, history = []) {
     let response = "";
 
     if (analysis.felling === "negatif") {
-        const model = generateWithFallback(prompt, contents);
-        const result = await model.generateContent({ contents });
-        return result.response.text();
+        return await generateWithFallback(prompt, contents);
     }
 
     else {
@@ -71,9 +68,7 @@ async function getResponse(message, analysis, history = []) {
         } else if (analysis.intention === "livraison") {
             response = "La livraison prend entre 2 et 5 jours ouvrables selon votre zone.";
         } else {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: prompt });
-            const result = await model.generateContent({ contents });
-            return result.response.text();
+            return await generateWithFallback(prompt, contents);
         }
     }
     return response;

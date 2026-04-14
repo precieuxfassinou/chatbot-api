@@ -29,7 +29,7 @@ async function getStats(req, res) {
             todayMessages: todayMessages.rows[0].count
         });
     } catch (error) {
-        res.status(500).json({ error: 'Erreurserveur' });
+        res.status(500).json({ error: 'Erreur serveur' });
     }
 
 }
