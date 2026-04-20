@@ -26,17 +26,38 @@ const io = new Server(httpServer, {
   }
 });
 
+// --- Auth middleware pour Socket.io ---
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error('Token manquant'));
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (err) {
+    next(new Error('Token invalide'));
+  }
+});
+
 io.on('connection', (socket) => {
-  console.log('Client connecté : ' + socket.id);
+  console.log(`Client connecté : ${socket.id} (user ${socket.userId})`);
+  socket.join(`user:${socket.userId}`);
 
   socket.on('message', async (data) => {
     try {
-      const { message, token } = data;
+      const { message } = data;
+      const userId = socket.userId;
 
-      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-      const userId = decoded.id;
+      const { conversation, isNew } = await getOrCreateConversation(userId);
 
-      const conversation = await getOrCreateConversation(userId);
+      // Si une nouvelle conv a été créée suite à un timeout détecté
+      // au moment du message → prévenir le client
+      if (isNew) {
+        io.to(`user:${userId}`).emit('conversation:created', {
+          conversation,
+          reason: 'inactivity_timeout_on_message'
+        });
+      }
 
       const historyResult = await pool.query(
         "SELECT sender, content FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC LIMIT 10",
@@ -45,26 +66,65 @@ io.on('connection', (socket) => {
       const history = historyResult.rows;
 
       const analysis = await analyzeMessage(message);
-
       const response = await getResponse(message, analysis, history);
 
       await pool.query(
         "INSERT INTO messages (conversation_id, sender, content) VALUES ($1, 'user', $2)",
         [conversation.id, message]
       );
-
       await pool.query(
         "INSERT INTO messages (conversation_id, sender, content, intention) VALUES ($1, 'bot', $2, $3)",
         [conversation.id, response, analysis.intention]
       );
 
-      socket.emit('response', { response });
+      socket.emit('response', { response, conversationId: conversation.id });
     } catch (error) {
       console.error('Socket error:', error.message);
       socket.emit('error', { message: 'Erreur serveur' });
     }
   });
 });
+
+// --- Scanner d'inactivité (vraie notif pendant que le user ne fait rien) ---
+const INACTIVITY_TIMEOUT_MS = process.env.NODE_ENV === 'production'
+  ? 48 * 60 * 60 * 1000   // 48h en prod
+  : 3 * 60 * 1000;         // 3 min en dev
+const SCAN_INTERVAL_MS = 30 * 1000; // scan toutes les 30s
+
+async function scanInactiveConversations() {
+  try {
+    // 1. Trouver les conv actives dépassant le timeout
+    const expired = await pool.query(
+      `SELECT id, user_id FROM conversations
+       WHERE status = 'active'
+         AND last_activity < NOW() - ($1::int * INTERVAL '1 millisecond')`,
+      [INACTIVITY_TIMEOUT_MS]
+    );
+
+    for (const row of expired.rows) {
+      // 2. Clôturer
+      await pool.query(
+        "UPDATE conversations SET status = 'inactive' WHERE id = $1",
+        [row.id]
+      );
+      // 3. Créer la nouvelle conv
+      const created = await pool.query(
+        "INSERT INTO conversations (user_id, status, last_activity) VALUES ($1, 'active', NOW()) RETURNING *",
+        [row.user_id]
+      );
+      // 4. Notifier le user s'il est connecté
+      io.to(`user:${row.user_id}`).emit('conversation:created', {
+        conversation: created.rows[0],
+        reason: 'inactivity_timeout'
+      });
+      console.log(`Nouvelle conv ${created.rows[0].id} pour user ${row.user_id} (timeout)`);
+    }
+  } catch (err) {
+    console.error('Scanner erreur:', err.message);
+  }
+}
+
+setInterval(scanInactiveConversations, SCAN_INTERVAL_MS);
 
 // Middleware
 app.use(cors({

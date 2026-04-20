@@ -101,8 +101,9 @@ async function getHistory(req, res) {
 }
 
 async function getOrCreateConversation(userId) {
-
-    const TIMEOUT = process.env.NODE_ENV === 'production' ? 3 * 60 * 1000 : 3 * 60 * 1000; // 48 heures en prod, 3 minutes en dev
+    const TIMEOUT = process.env.NODE_ENV === 'production'
+      ? 48 * 60 * 60 * 1000
+      : 3 * 60 * 1000;
 
     let result = await pool.query(
         "SELECT * FROM conversations WHERE user_id = $1 AND status = 'active'",
@@ -114,7 +115,7 @@ async function getOrCreateConversation(userId) {
             "INSERT INTO conversations (user_id, status, last_activity) VALUES ($1, 'active', NOW()) RETURNING *",
             [userId]
         );
-        return newConversation.rows[0];
+        return { conversation: newConversation.rows[0], isNew: true };
     }
 
     const conversation = result.rows[0];
@@ -130,21 +131,20 @@ async function getOrCreateConversation(userId) {
             "INSERT INTO conversations (user_id, status, last_activity) VALUES ($1, 'active', NOW()) RETURNING *",
             [userId]
         );
-        return newConversation.rows[0];
+        return { conversation: newConversation.rows[0], isNew: true };
     }
 
     await pool.query(
         "UPDATE conversations SET last_activity = NOW() WHERE id = $1",
         [conversation.id]
     );
-    return conversation;
-
+    return { conversation, isNew: false };
 }
 
 async function handleChat(req, res) {
     const { message } = req.body;
     const userId = req.user.id;
-    const conversation = await getOrCreateConversation(userId);
+    const { conversation } = await getOrCreateConversation(userId); // ← destructuration pour récupérer juste la conversation, pas le flag isNew
 
     if (!message) {
         return res.status(400).json({ error: "Message vide" });
