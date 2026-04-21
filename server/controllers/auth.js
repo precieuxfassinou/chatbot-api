@@ -113,4 +113,54 @@ async function logout(req, res) {
     res.status(200).json({ message: 'Déconnecté avec succès' });
 }
 
-module.exports = { register, login, refreshToken, logout, getProfile };
+async function setupAdmin(req, res) {
+    const { secret, email, password, firstname, lastname } = req.body;
+
+    // 1. Vérifier le secret
+    if (secret !== process.env.SETUP_SECRET) {
+        return res.status(403).json({ error: 'Secret invalide' });
+    }
+
+    try {
+        // 2. Vérifier qu'aucun admin n'existe déjà
+        const existing = await pool.query(
+            "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
+        );
+        if (existing.rows.length > 0) {
+            return res.status(409).json({ error: 'Un admin existe déjà' });
+        }
+
+        // 3. Email fourni sans password → promouvoir un user existant
+        if (email && !password) {
+            const promoted = await pool.query(
+                "UPDATE users SET role = 'admin' WHERE email = $1 RETURNING id, email, role",
+                [email]
+            );
+            if (promoted.rows.length === 0) {
+                return res.status(404).json({ error: 'Utilisateur introuvable' });
+            }
+            return res.json({ message: 'Utilisateur promu admin', user: promoted.rows[0] });
+        }
+
+        // 4. Créer un nouvel admin
+        if (!email || !password || !firstname || !lastname) {
+            return res.status(400).json({ error: 'Champs manquants : email, password, firstname, lastname' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const result = await pool.query(
+            "INSERT INTO users (firstname, lastname, email, password, role) VALUES ($1, $2, $3, $4, 'admin') RETURNING id, email, role",
+            [firstname, lastname, email, hashedPassword]
+        );
+
+        res.status(201).json({ message: 'Admin créé', user: result.rows[0] });
+
+    } catch (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ error: 'Email déjà utilisé' });
+        }
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+}
+
+module.exports = { register, login, refreshToken, logout, getProfile, setupAdmin };
